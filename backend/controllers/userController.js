@@ -1,0 +1,141 @@
+import bcrypt from "bcrypt";
+import { PrismaClient } from "@prisma/client";
+import { isValidAddress, isValidEmail, isValidName, isValidPassword, pickSort } from "../utils/validators.js";
+
+const prisma = new PrismaClient();
+
+// Admin: create any user (ADMIN / NORMAL / OWNER)
+export const adminCreateUser = async (req, res) => {
+  try {
+    const { name, email, address, password, role } = req.body;
+
+    if (!isValidName(name)) return res.status(400).json({ message: "Name must be 20–60 chars" });
+    if (!isValidEmail(email)) return res.status(400).json({ message: "Invalid email" });
+    if (!isValidAddress(address)) return res.status(400).json({ message: "Address max 400 chars" });
+    if (!isValidPassword(password)) return res.status(400).json({ message: "Password 8–16, 1 uppercase & 1 special" });
+    if (!["ADMIN", "NORMAL", "OWNER"].includes(role)) return res.status(400).json({ message: "Invalid role" });
+
+    const exists = await prisma.user.findUnique({ where: { email } });
+    if (exists) return res.status(400).json({ message: "Email already in use" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: { name, email, address, password: hashed, role }
+    });
+
+    res.status(201).json({ message: "User created", user: { id: user.id, name, email, role } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Admin: list users with filters & sorting
+export const adminListUsers = async (req, res) => {
+  try {
+    const { name, email, address, role, sortBy = "name", order = "asc", page = 1, limit = 10 } = req.query;
+    const where = {
+      AND: [
+        name ? { name: { contains: String(name), mode: "insensitive" } } : {},
+        email ? { email: { contains: String(email), mode: "insensitive" } } : {},
+        address ? { address: { contains: String(address), mode: "insensitive" } } : {},
+        role ? { role: String(role).toUpperCase() } : {}
+      ]
+    };
+    const skip = (Number(page) - 1) * Number(limit);
+    const orderBy = pickSort(["name","email","address","role","createdAt","id"], sortBy, order);
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany({ where, skip, take: Number(limit), orderBy }),
+      prisma.user.count({ where })
+    ]);
+
+    res.json({ total, items });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Admin: user details (if OWNER, also return store + avg rating)
+export const adminGetUser = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { store: true } // assuming 1 store per owner
+    });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    let ownerStats = null;
+    if (user.role === "OWNER" && user.store) {
+      const agg = await prisma.rating.aggregate({
+        where: { storeId: user.store.id },
+        _avg: { rating: true },
+        _count: true
+      });
+      ownerStats = { storeId: user.store.id, averageRating: agg._avg.rating || 0, totalRatings: agg._count };
+    }
+
+    res.json({ user: { id: user.id, name: user.name, email: user.email, address: user.address, role: user.role }, ownerStats });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Any logged-in user: update own password
+export const updateMyPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!isValidPassword(newPassword)) return res.status(400).json({ message: "New password invalid (8–16, uppercase+special)" });
+
+    const me = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!me) return res.status(404).json({ message: "User not found" });
+
+    const ok = await bcrypt.compare(currentPassword, me.password);
+    if (!ok) return res.status(400).json({ message: "Current password incorrect" });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: me.id }, data: { password: hashed } });
+
+    res.json({ message: "Password updated" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const userDashboard = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Fetch ratings by this user
+    const ratings = await prisma.rating.findMany({
+      where: { userId },
+      include: { store: true }
+    });
+
+    const totalRatings = ratings.length;
+    const averageScore =
+      totalRatings > 0
+        ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings
+        : 0;
+
+    res.json({
+      message: "User dashboard stats",
+      data: {
+        totalRatings,
+        averageScore: Number(averageScore.toFixed(2)),
+        ratedStores: ratings.map(r => ({
+          storeId: r.storeId,
+          storeName: r.store.name,
+          rating: r.rating   // ✅ fixed field
+        }))
+      }
+    });
+  } catch (error) {
+    console.error("User dashboard error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

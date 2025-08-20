@@ -39,6 +39,8 @@ model Rating {
   user      User     @relation(fields: [userId], references: [id])
   store     Store    @relation(fields: [storeId], references: [id])
   createdAt DateTime @default(now())
+
+   @@unique([userId, storeId]) // ✅ ensures one rating per user per store
 }
 
 enum Role {
