@@ -1,3 +1,4 @@
+//backend\routes\ratingRoutes.js
 import { Router } from "express";
 import { authenticate } from "../middlewares/authMiddleware.js";
 import { requireRole } from "../middlewares/roleMiddleware.js";

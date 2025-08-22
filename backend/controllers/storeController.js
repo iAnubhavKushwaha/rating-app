@@ -1,3 +1,4 @@
+//backend\controllers\storeController.js
 import { PrismaClient } from "@prisma/client";
 import { isValidAddress, isValidName, pickSort } from "../utils/validators.js";
 
@@ -149,5 +150,116 @@ export const adminDashboard = async (req, res) => {
   } catch (error) {
     console.error("Admin dashboard error:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const adminListStores = async (req, res) => {
+  try {
+    const { name, address, sortBy = "name", order = "asc", page = 1, limit = 10 } = req.query;
+
+    const where = {
+      AND: [
+        name ? { name: { contains: String(name), mode: "insensitive" } } : {},
+        address ? { address: { contains: String(address), mode: "insensitive" } } : {}
+      ]
+    };
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const orderBy = pickSort(["name","address","createdAt","id"], sortBy, order);
+
+    const [stores, total] = await Promise.all([
+      prisma.store.findMany({
+        where, skip, take: Number(limit), orderBy,
+        include: { owner: { select: { id: true, email: true, name: true } } }
+      }),
+      prisma.store.count({ where })
+    ]);
+
+    res.json({ total, items: stores });
+  } catch (error) {
+    console.error("Admin list stores error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const adminDeleteStore = async (req, res) => {
+  try {
+    const storeId = Number(req.params.id);
+
+    const store = await prisma.store.findUnique({ where: { id: storeId } });
+    if (!store) return res.status(404).json({ message: "Store not found" });
+
+    await prisma.rating.deleteMany({ where: { storeId } }); // delete ratings first
+    await prisma.store.delete({ where: { id: storeId } }); // delete store
+
+    res.json({ message: "Store deleted successfully" });
+  } catch (error) {
+    console.error("Admin delete store error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const adminGetStore = async (req, res) => {
+  try {
+    const storeId = Number(req.params.id);
+
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      include: { owner: { select: { id: true, name: true, email: true } } }
+    });
+    if (!store) return res.status(404).json({ message: "Store not found" });
+
+    const ratings = await prisma.rating.findMany({
+      where: { storeId },
+      select: { id: true, rating: true, comment: true, createdAt: true,
+        user: { select: { id: true, name: true, email: true } } }
+    });
+
+    const agg = await prisma.rating.aggregate({
+      where: { storeId },
+      _avg: { rating: true },
+      _count: true
+    });
+
+    res.json({
+      store,
+      ratings,
+      averageRating: agg._avg.rating || 0,
+      totalRatings: agg._count
+    });
+  } catch (error) {
+    console.error("Admin get store error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const adminUpdateStore = async (req, res) => {
+  try {
+    const storeId = Number(req.params.id);
+    const { name, address, ownerId } = req.body;
+
+    const data = {};
+    if (name && isValidName(name)) data.name = name;
+    if (address && isValidAddress(address)) data.address = address;
+
+    if (ownerId) {
+      const owner = await prisma.user.findUnique({ where: { id: Number(ownerId) } });
+      if (!owner || owner.role !== "OWNER") {
+        return res.status(400).json({ message: "Invalid ownerId" });
+      }
+      data.ownerId = owner.id;
+    }
+
+    const updatedStore = await prisma.store.update({
+      where: { id: storeId },
+      data
+    });
+
+    res.json({ message: "Store updated successfully", store: updatedStore });
+  } catch (error) {
+    console.error("Admin update store error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

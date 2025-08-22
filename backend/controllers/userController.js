@@ -1,3 +1,5 @@
+//backend\controllers\userController.js
+
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import { isValidAddress, isValidEmail, isValidName, isValidPassword, pickSort } from "../utils/validators.js";
@@ -137,5 +139,72 @@ export const userDashboard = async (req, res) => {
   } catch (error) {
     console.error("User dashboard error:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Admin: delete a user
+export const adminDeleteUser = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+
+    if (req.user.id === userId) {
+      return res.status(400).json({ message: "You cannot delete your own account" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Optional: prevent deleting admins
+    if (user.role === "ADMIN") {
+      return res.status(403).json({ message: "Cannot delete an Admin user" });
+    }
+
+    // If the user owns a store, delete store & related ratings first
+    if (user.role === "OWNER") {
+      await prisma.rating.deleteMany({ where: { store: { ownerId: userId } } });
+      await prisma.store.deleteMany({ where: { ownerId: userId } });
+    }
+
+    // Delete user's ratings
+    await prisma.rating.deleteMany({ where: { userId } });
+
+    // Delete user
+    await prisma.user.delete({ where: { id: userId } });
+
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// Admin: update a user's role
+export const adminUpdateUserRole = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const { role } = req.body;
+
+    if (!["ADMIN", "OWNER", "NORMAL"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    // Prevent admin from changing their own role
+    if (req.user.id === userId) {
+      return res.status(400).json({ message: "You cannot change your own role" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { role }
+    });
+
+    res.json({ message: "User role updated", user: updatedUser });
+  } catch (error) {
+    console.error("Update role error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

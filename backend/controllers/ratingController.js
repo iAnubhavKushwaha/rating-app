@@ -12,23 +12,32 @@ export const upsertMyRating = async (req, res) => {
 
     if (rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be between 1 and 5" });
 
-    // Ensure store exists
     const store = await prisma.store.findUnique({ where: { id: storeId } });
     if (!store) return res.status(404).json({ message: "Store not found" });
 
-    // Ensure unique composite exists in schema: @@unique([userId, storeId])
     const result = await prisma.rating.upsert({
       where: { userId_storeId: { userId, storeId } },
       update: { rating },
       create: { rating, userId, storeId }
     });
 
-    res.json({ message: "Rating saved", rating: result });
+    // Calculate average rating for this store
+    const aggregate = await prisma.rating.aggregate({
+      where: { storeId },
+      _avg: { rating: true }
+    });
+
+    res.json({
+      message: "Rating saved",
+      rating: result.rating, // user's rating
+      averageRating: aggregate._avg.rating || 0
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Get all ratings for a store
 export const getStoreRatings = async (req, res) => {
