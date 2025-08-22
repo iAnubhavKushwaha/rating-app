@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/authContext";
 import { Navbar } from "./components/Navbar";
-import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
+import ResetPassword from "./pages/ResetPassword";
 import { Dashboard } from "./pages/Dashboard";
 import BrowseStores from "./components/BrowseStores";
 import { AdminDashboard } from "./pages/AdminDashboard";
@@ -13,7 +13,7 @@ import { UserDetails } from "./pages/UserDetails";
 import { StoreDetails } from "./pages/StoreDetails";
 import { NotFound } from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import HomePage from "./pages/HomePage";
+import { LoginHomePage } from "./pages/LoginHomePage";
 
 const App = () => {
   return (
@@ -21,9 +21,9 @@ const App = () => {
       <BrowserRouter>
         <NavbarWithUser />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<LoginHomePage />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/resetPassword" element={<ResetPassword />} />
           <Route path="/browseStores" element={<BrowseStores />} />
           <Route path="/dashboard" element={
             <ProtectedRoute roles={["NORMAL"]}>
@@ -69,7 +69,7 @@ const App = () => {
 
 const NavbarWithUser = () => {
   const { user } = useAuth();
-  return user ? <Navbar /> : null; // Render Navbar only if user is logged in
+  return user ? <Navbar /> : null;
 };
 
 export default App;

@@ -1,45 +1,43 @@
-import { Link , useNavigate} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
-
-    const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate(); 
 
   const handleLogout = () => {
-    logout(); // Call the logout function from context
-    navigate("/"); // Redirect to home page after logout
+    logout();
+    navigate("/"); // Redirect to the home page after logout
   };
 
   return (
-    <nav className="bg-gray-800 p-4 text-white flex justify-between">
+    <nav className="bg-blue-500 p-4 text-white flex justify-between items-center">
+      <h1 className="text-xl font-bold">Store Rating App</h1>
       <div className="flex gap-4">
         {user && user.role === "ADMIN" && (
           <>
-            <Link to="/admin">Dashboard</Link>
-            <Link to="/admin/users">Manage Users</Link>
-            <Link to="/admin/stores">Manage Stores</Link>
+            <Link to="/admin" className="hover:underline">Dashboard</Link>
+            <Link to="/admin/users" className="hover:underline">Manage Users</Link>
+            <Link to="/admin/stores" className="hover:underline">Manage Stores</Link>
           </>
         )}
         {user && user.role === "OWNER" && (
-          <>
-            <Link to="/owner/dashboard">Owner Dashboard</Link>
-          </>
+          <Link to="/owner/dashboard" className="hover:underline">Owner Dashboard</Link>
         )}
-        {/* Links for Normal Users */}
         {user && user.role === "NORMAL" && (
           <>
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/browseStores">BrowseStores</Link>
-             
+            <Link to="/dashboard" className="hover:underline">Dashboard</Link>
+            <Link to="/browseStores" className="hover:underline">Browse Stores</Link>
           </>
         )}
       </div>
       <div>
         {!user ? (
-          <Link to="/login">Login</Link>
+          <Link to="/login" className="bg-white text-blue-500 px-4 py-2 rounded hover:bg-blue-100 transition">
+            Login
+          </Link>
         ) : (
-          <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded">
+          <button onClick={handleLogout} className="bg-red-400 px-4 py-2 rounded hover:bg-red-600 transition">
             Logout
           </button>
         )}

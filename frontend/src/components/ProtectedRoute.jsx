@@ -7,8 +7,8 @@ export const ProtectedRoute = ({ children, roles }) => {
   console.log("ProtectedRoute user:", user, "Roles required:", roles);
 
   if (!user) {
-    console.warn("No user, redirecting to /login");
-    return <Navigate to="/login" />;
+    console.warn("No user, redirecting to /");
+    return <Navigate to="/" />;
   }
 
   if (roles && !roles.includes(user.role)) {

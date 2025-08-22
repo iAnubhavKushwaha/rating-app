@@ -6,9 +6,9 @@ export const RatingStars = ({ rating, onSelect, readOnly = false }) => {
       {stars.map((star) => (
         <span
           key={star}
-          className={`${
+          className={`text-xl transition duration-200 ${
             star <= rating ? "text-yellow-500" : "text-gray-300"
-          } ${!readOnly ? "cursor-pointer" : ""}`}
+          } ${!readOnly ? "cursor-pointer hover:text-yellow-400" : ""}`}
           onClick={() => !readOnly && onSelect && onSelect(star)}
         >
           ★

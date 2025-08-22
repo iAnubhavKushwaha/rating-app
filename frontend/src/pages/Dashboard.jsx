@@ -1,5 +1,3 @@
-// src/pages/Dashboard.js
-
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/authContext";
 import axios from "axios";
@@ -25,27 +23,41 @@ export const Dashboard = () => {
     fetchDashboard();
   }, []);
 
-  if (!stats) return <div>Loading...</div>;
+  if (!stats) return <div className="text-center">Loading...</div>;
 
   return (
-    <div className="p-4">
-      {/* User Stats */}
-      <p>Total Ratings: {stats.totalRatings ?? 0}</p>
-      <p>Average Score: {stats.averageScore ?? "N/A"}</p>
+    <div className="flex flex-col items-center h-screen bg-gray-100 p-4">
+      {/* Total Ratings Section */}
+      <div className="bg-white w-full p-6 rounded-lg shadow-md mb-6">
+        <h2 className="text-2xl font-bold mb-4">Total Ratings</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-blue-100 p-4 rounded-lg shadow">
+            <p className="text-lg font-semibold">Total Ratings:</p>
+            <p className="text-2xl text-blue-500">{stats.totalRatings ?? 0}</p>
+          </div>
+          <div className="bg-blue-100 p-4 rounded-lg shadow">
+            <p className="text-lg font-semibold">Average Score:</p>
+            <p className="text-2xl text-blue-500">{stats.averageScore ?? "N/A"}</p>
+          </div>
+        </div>
+      </div>
 
-      {/* Rated Stores */}
-      <h2 className="mt-4 font-bold">Rated Stores:</h2>
-      <ul>
-        {stats.ratedStores && stats.ratedStores.length > 0 ? (
-          stats.ratedStores.map((r) => (
-            <li key={r.storeId}>
-              {r.storeName}: {r.rating}
-            </li>
-          ))
-        ) : (
-          <p>No stores rated yet.</p>
-        )}
-      </ul>
+      {/* Rated Stores Section */}
+      <div className="bg-white w-full p-6 rounded-lg shadow-md">
+        <h3 className="font-bold text-lg mb-2">Rated Stores:</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {stats.ratedStores && stats.ratedStores.length > 0 ? (
+            stats.ratedStores.map((r) => (
+              <div key={r.storeId} className="bg-gray-50 p-4 rounded shadow-md">
+                <p className="font-medium">{r.storeName}</p>
+                <p className="text-gray-700">Rating: <span className="font-bold">{r.rating}</span></p>
+              </div>
+            ))
+          ) : (
+            <p>No stores rated yet.</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
