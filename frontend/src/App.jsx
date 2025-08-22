@@ -1,35 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/authContext";
+import { Navbar } from "./components/Navbar";
+import { Login } from "./pages/Login";
+import { Signup } from "./pages/Signup";
+import { Dashboard } from "./pages/Dashboard";
+import BrowseStores from "./components/BrowseStores";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { OwnerDashboard } from "./pages/OwnerDashboard";
+import { ManageUsers } from "./pages/ManageUsers";
+import { ManageStores } from "./pages/ManageStores";
+import { UserDetails } from "./pages/UserDetails";
+import { StoreDetails } from "./pages/StoreDetails";
+import { NotFound } from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import HomePage from "./pages/HomePage";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const App = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <AuthProvider>
+      <BrowserRouter>
+        <NavbarWithUser />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/browseStores" element={<BrowseStores />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute roles={["NORMAL"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <ManageUsers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/stores" element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <ManageStores />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users/:id" element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <UserDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/stores/:id" element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <StoreDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/owner/dashboard" element={
+            <ProtectedRoute roles={["OWNER"]}>
+              <OwnerDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+};
 
-export default App
+const NavbarWithUser = () => {
+  const { user } = useAuth();
+  return user ? <Navbar /> : null; // Render Navbar only if user is logged in
+};
+
+export default App;
