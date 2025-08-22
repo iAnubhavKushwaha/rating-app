@@ -1,75 +1,160 @@
 import { useState } from "react";
-import { RatingStars } from "./RatingStars"; // Your RatingsStars component
-import { upsertRating } from "../api/rating"; // Call API to upsert rating
+import { RatingStars } from "./RatingStars";
+import { upsertRating } from "../api/rating";
 
 export const StoreCard = ({ store, refreshStores }) => {
-  // State variables for ratings and modal visibility
   const [myRating, setMyRating] = useState(store.myRating ?? 0);
   const [averageRating, setAverageRating] = useState(store.overallRating ?? 0);
   const [showModal, setShowModal] = useState(false);
   const [tempRating, setTempRating] = useState(myRating);
 
-  // Handle rating submission
   const handleSubmitRating = async () => {
     try {
       const updated = await upsertRating(store.id, tempRating);
-      setMyRating(tempRating);  // Update my rating in state
+      setMyRating(tempRating);
       if (updated.averageRating !== undefined && updated.averageRating !== null) {
-        setAverageRating(updated.averageRating); // Update average rating
+        setAverageRating(updated.averageRating);
       }
-      setShowModal(false); // Close modal
-      if (refreshStores) refreshStores(); // Refresh stores if necessary
+      setShowModal(false);
+      if (refreshStores) refreshStores();
     } catch (err) {
       console.error("Failed to submit rating", err);
     }
   };
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg shadow-md p-5 transition-transform hover:shadow-lg flex flex-col m-2 w-80 h-auto">
-      <h2 className="text-xl font-semibold text-gray-800">{store.name}</h2>
-      <p className="text-gray-700 text-sm">{store.address}</p>
+    <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+      <div
+        style={{
+          background: "white",
+          border: "1px solid #e5e7eb",
+          borderRadius: "16px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+          padding: "24px",
+          transition: "all 0.3s ease",
+          width: "380px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        {/* Store Name */}
+        <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#1f2937", textAlign: "center" }}>
+          {store.name}
+        </h2>
+        <p style={{ fontSize: "14px", color: "#6b7280", textAlign: "center", marginTop: "6px" }}>
+          {store.address}
+        </p>
 
-      {/* Your rating */}
-      <div className="mt-3 flex items-center">
-        <span className="text-sm font-medium text-gray-600">Your Rating:</span>
-        <div className="ml-2">
-          <RatingStars rating={myRating} readOnly size={36} /> {/* Increased star size here */}
+        {/* Your Rating */}
+        <div style={{ marginTop: "16px", display: "flex", alignItems: "center" }}>
+          <span style={{ fontSize: "14px", fontWeight: 500, color: "#374151" }}>Your Rating:</span>
+          <div style={{ marginLeft: "8px" }}>
+            <RatingStars rating={myRating} readOnly />
+          </div>
+        </div>
+
+        {/* Average Rating */}
+        <p style={{ marginTop: "10px", fontSize: "14px", color: "#6b7280", textAlign: "center" }}>
+          Average:{" "}
+          <span style={{ color: "#059669", fontWeight: 600 }}>
+            {averageRating.toFixed(1)}
+          </span>{" "}
+          / 5 ({store.totalRatings} ratings)
+        </p>
+
+        {/* Rate Button */}
+        <div style={{ marginTop: "20px", width: "100%" }}>
+          <button
+            onClick={() => {
+              setTempRating(myRating);
+              setShowModal(true);
+            }}
+            style={{
+              background: "#0d9488",
+              color: "white",
+              fontSize: "14px",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "none",
+              cursor: "pointer",
+              width: "100%",
+              transition: "background 0.3s ease",
+            }}
+            onMouseOver={(e) => (e.target.style.background = "#047857")}
+            onMouseOut={(e) => (e.target.style.background = "#0d9488")}
+          >
+            Rate this Store
+          </button>
         </div>
       </div>
 
-      {/* Average rating */}
-      <p className="mt-2 text-sm text-gray-500">
-        Average Rating: {averageRating.toFixed(1)} ({store.totalRatings} ratings)
-      </p>
-
-      {/* Rate button */}
-      <div className="mt-4 flex justify-center">
-        <button
-          onClick={() => {
-            setTempRating(myRating); // Set the temporary rating
-            setShowModal(true); // Show the modal
-          }}
-          className="bg-gray-200 text-gray-800 text-sm py-2 px-4 rounded hover:bg-gray-300 transition duration-150 w-full"
-        >
-          Rate Store
-        </button>
-      </div>
-
-      {/* Rating modal */}
+      {/* Rating Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center backdrop-blur-md bg-white/30">
-          <div className="bg-white rounded-lg shadow-md w-96 p-6 z-50"> {/* Increased width and padding */}
-            <h3 className="text-xl font-semibold mb-4">Rate {store.name}</h3>
-            <RatingStars rating={tempRating} onSelect={setTempRating} size={36} /> {/* Increased star size here */}
-            <div className="mt-4 flex justify-end space-x-2">
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.3)",
+            backdropFilter: "blur(4px)",
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+              width: "380px",
+              padding: "24px",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "#1f2937",
+                textAlign: "center",
+                marginBottom: "16px",
+              }}
+            >
+              Rate {store.name}
+            </h3>
+
+            {/* Stars Selection */}
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <RatingStars rating={tempRating} onSelect={setTempRating} />
+            </div>
+
+            {/* Buttons */}
+            <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
               <button
-                className="px-5 py-3 bg-gray-300 text-sm rounded hover:bg-gray-400 transition"
+                style={{
+                  padding: "8px 14px",
+                  background: "#e5e7eb",
+                  color: "#374151",
+                  fontSize: "14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                }}
                 onClick={() => setShowModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-5 py-3 bg-gray-700 text-white rounded hover:bg-gray-800 transition text-sm"
+                style={{
+                  padding: "8px 14px",
+                  background: "#0d9488",
+                  color: "white",
+                  fontSize: "14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                }}
                 onClick={handleSubmitRating}
               >
                 Submit
